@@ -1,15 +1,22 @@
 package com.healthcare.repository;
 
 import com.healthcare.config.DatabaseConnection;
+import com.healthcare.model.ClinicalReport;
+import org.springframework.stereotype.Repository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
+@Repository
 public class ClinicalReportRepository {
 
-    public void printPatientClinicalReport(int patientId) {
+    public List<ClinicalReport> findPatientClinicalReport(int patientId) {
+
+        List<ClinicalReport> reports = new ArrayList<>();
 
         String sql = """
                 SELECT
@@ -26,9 +33,9 @@ public class ClinicalReportRepository {
                     m.DOSAGE,
                     m.FREQUENCY
                 FROM PATIENT p
-                JOIN ENCOUNTER e
+                LEFT JOIN ENCOUNTER e
                     ON p.PATIENT_ID = e.PATIENT_ID
-                JOIN DOCTOR d
+                LEFT JOIN DOCTOR d
                     ON e.DOCTOR_ID = d.DOCTOR_ID
                 LEFT JOIN DIAGNOSIS dg
                     ON e.ENCOUNTER_ID = dg.ENCOUNTER_ID
@@ -45,85 +52,67 @@ public class ClinicalReportRepository {
 
             try (ResultSet resultSet = statement.executeQuery()) {
 
-                boolean found = false;
-
                 while (resultSet.next()) {
-                    found = true;
 
-                    System.out.println("----------------------------------------");
+                    ClinicalReport report = new ClinicalReport();
 
-                    System.out.println(
-                            "Patient ID     : "
-                                    + resultSet.getInt("PATIENT_ID")
-                    );
+                    report.setPatientId(resultSet.getInt("PATIENT_ID"));
+                    report.setPatientName(resultSet.getString("PATIENT_NAME"));
+                    report.setGender(resultSet.getString("GENDER"));
+                    report.setBloodGroup(resultSet.getString("BLOOD_GROUP"));
+                    report.setEncounterId(resultSet.getInt("ENCOUNTER_ID"));
 
-                    System.out.println(
-                            "Patient Name   : "
-                                    + resultSet.getString("PATIENT_NAME")
-                    );
+                    if (resultSet.getTimestamp("ENCOUNTER_TIME") != null) {
+                        report.setEncounterTime(
+                                resultSet.getTimestamp("ENCOUNTER_TIME").toLocalDateTime()
+                        );
+                    }
 
-                    System.out.println(
-                            "Gender         : "
-                                    + resultSet.getString("GENDER")
-                    );
+                    report.setDoctorName(resultSet.getString("DOCTOR_NAME"));
+                    report.setDiagnosisName(resultSet.getString("DIAGNOSIS_NAME"));
+                    report.setDiagnosisType(resultSet.getString("DIAGNOSIS_TYPE"));
+                    report.setMedicationName(resultSet.getString("MEDICATION_NAME"));
+                    report.setDosage(resultSet.getString("DOSAGE"));
+                    report.setFrequency(resultSet.getString("FREQUENCY"));
 
-                    System.out.println(
-                            "Blood Group    : "
-                                    + resultSet.getString("BLOOD_GROUP")
-                    );
-
-                    System.out.println(
-                            "Encounter ID   : "
-                                    + resultSet.getInt("ENCOUNTER_ID")
-                    );
-
-                    System.out.println(
-                            "Encounter Time : "
-                                    + resultSet.getTimestamp("ENCOUNTER_TIME")
-                    );
-
-                    System.out.println(
-                            "Doctor         : "
-                                    + resultSet.getString("DOCTOR_NAME")
-                    );
-
-                    System.out.println(
-                            "Diagnosis      : "
-                                    + resultSet.getString("DIAGNOSIS_NAME")
-                    );
-
-                    System.out.println(
-                            "Diagnosis Type : "
-                                    + resultSet.getString("DIAGNOSIS_TYPE")
-                    );
-
-                    System.out.println(
-                            "Medication     : "
-                                    + resultSet.getString("MEDICATION_NAME")
-                    );
-
-                    System.out.println(
-                            "Dosage         : "
-                                    + resultSet.getString("DOSAGE")
-                    );
-
-                    System.out.println(
-                            "Frequency      : "
-                                    + resultSet.getString("FREQUENCY")
-                    );
-                }
-
-                if (!found) {
-                    System.out.println(
-                            "No clinical records found for patient ID: "
-                                    + patientId
-                    );
+                    reports.add(report);
                 }
             }
 
         } catch (SQLException e) {
-            System.out.println("Error generating clinical report.");
-            e.printStackTrace();
+            throw new RuntimeException(
+                    "Failed to fetch clinical report for patient ID: " + patientId,
+                    e
+            );
+        }
+
+        return reports;
+    }
+
+    public void printPatientClinicalReport(int patientId) {
+
+        List<ClinicalReport> reports = findPatientClinicalReport(patientId);
+
+        if (reports.isEmpty()) {
+            System.out.println("No clinical report found for patient ID: " + patientId);
+            return;
+        }
+
+        for (ClinicalReport report : reports) {
+
+            System.out.println("Patient ID       : " + report.getPatientId());
+            System.out.println("Patient Name     : " + report.getPatientName());
+            System.out.println("Gender           : " + report.getGender());
+            System.out.println("Blood Group      : " + report.getBloodGroup());
+            System.out.println("Encounter ID     : " + report.getEncounterId());
+            System.out.println("Encounter Time   : " + report.getEncounterTime());
+            System.out.println("Doctor           : " + report.getDoctorName());
+            System.out.println("Diagnosis        : " + report.getDiagnosisName());
+            System.out.println("Diagnosis Type   : " + report.getDiagnosisType());
+            System.out.println("Medication       : " + report.getMedicationName());
+            System.out.println("Dosage           : " + report.getDosage());
+            System.out.println("Frequency        : " + report.getFrequency());
+            System.out.println("---------------------------------------------");
         }
     }
 }

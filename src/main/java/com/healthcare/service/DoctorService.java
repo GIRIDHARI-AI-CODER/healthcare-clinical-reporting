@@ -2,15 +2,17 @@ package com.healthcare.service;
 
 import com.healthcare.model.Doctor;
 import com.healthcare.repository.DoctorRepository;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class DoctorService {
 
     private final DoctorRepository doctorRepository;
 
-    public DoctorService() {
-        this.doctorRepository = new DoctorRepository();
+    public DoctorService(DoctorRepository doctorRepository) {
+        this.doctorRepository = doctorRepository;
     }
 
     public List<Doctor> getAllDoctors() {
@@ -18,15 +20,10 @@ public class DoctorService {
     }
 
     public Doctor getDoctorById(int doctorId) {
-
-        List<Doctor> doctors = doctorRepository.findAll();
-
-        for (Doctor doctor : doctors) {
-            if (doctor.getDoctorId() == doctorId) {
-                return doctor;
-            }
+        if (doctorId <= 0) {
+            throw new IllegalArgumentException("Doctor ID must be greater than 0");
         }
 
-        return null;
+        return doctorRepository.findById(doctorId);
     }
 }
