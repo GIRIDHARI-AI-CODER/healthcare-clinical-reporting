@@ -41,6 +41,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleGeneralException(
             Exception exception) {
 
+        // Keep the detailed error in the server console for debugging.
+        exception.printStackTrace();
+
+        // Do not expose internal exception details to API clients.
         ApiError error = new ApiError(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "An unexpected error occurred."
